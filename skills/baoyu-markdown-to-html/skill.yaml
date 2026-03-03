@@ -1,0 +1,36 @@
+name: baoyu-markdown-to-html
+type: local
+version: 1.0.0
+description: Converts Markdown to styled HTML with WeChat-compatible themes. Supports code highlighting, math, PlantUML, footnotes, alerts, and infographics.
+
+runtime:
+  node: ">=18"
+
+functions:
+  convert:
+    description: Convert a Markdown file to styled HTML with optional theme, title override, and heading retention settings.
+    runtime: node
+    script: scripts/main.ts
+    args:
+      - "{{markdownPath}}"
+      - "--theme"
+      - "{{theme}}"
+    parameters:
+      markdownPath:
+        type: string
+        description: Absolute path to the input Markdown file
+        required: true
+      theme:
+        type: string
+        description: "Theme name: default (classic), grace (elegant), simple (minimal)"
+        required: false
+        default: "default"
+      title:
+        type: string
+        description: Override the title extracted from frontmatter or first heading
+        required: false
+      keepTitle:
+        type: boolean
+        description: Keep the first heading in content (default removes it)
+        required: false
+        default: false

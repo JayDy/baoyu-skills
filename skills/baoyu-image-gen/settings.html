@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>baoyu-image-gen Settings</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 24px;
+      background: #fff;
+      color: #1a1a1a;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { background: #1e1e1e; color: #e0e0e0; }
+      input, select { background: #2d2d2d; color: #e0e0e0; border-color: #444; }
+      input:focus, select:focus { border-color: #6b9fff; }
+      .status { color: #8b8b8b; }
+      .hint { color: #888; }
+      .badge { background: #2a4a2a; color: #6fcf6f; }
+    }
+    h2 { font-size: 18px; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #888; margin-bottom: 20px; }
+    label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+    input, select {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: #4a90d9; }
+    .field { margin-bottom: 16px; }
+    .hint { font-size: 12px; color: #999; margin-top: 4px; }
+    .hint a { color: #4a90d9; text-decoration: none; cursor: pointer; }
+    .hint a:hover { text-decoration: underline; }
+    @media (prefers-color-scheme: dark) {
+      .hint a { color: #6b9fff; }
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #e6f4e6;
+      color: #2d8a2d;
+      margin-left: 6px;
+      font-weight: 500;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      margin: 24px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #eee;
+    }
+    @media (prefers-color-scheme: dark) {
+      .section-title { border-bottom-color: #333; }
+    }
+    .actions { display: flex; gap: 8px; align-items: center; margin-top: 24px; }
+    button {
+      padding: 8px 20px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #4a90d9;
+      color: #fff;
+      transition: background 0.2s;
+    }
+    button:hover { background: #3a7bc8; }
+    .status { font-size: 13px; color: #666; }
+  </style>
+</head>
+<body>
+  <h2>Image Generation Settings</h2>
+  <p class="subtitle">Configure API keys for image generation providers. Only fill in the ones you use.</p>
+
+  <div class="section-title">Recommended</div>
+
+  <div class="field">
+    <label for="openrouterApiKey">OpenRouter API Key <span class="badge">Recommended</span></label>
+    <input type="password" id="openrouterApiKey" placeholder="sk-or-v1-..." />
+    <div class="hint">One key, multiple models. <a onclick="openLink('https://openrouter.ai/keys')">Get your key &rarr;</a></div>
+  </div>
+
+  <div class="section-title">Other Providers</div>
+
+  <div class="field">
+    <label for="googleApiKey">Google / Gemini API Key</label>
+    <input type="password" id="googleApiKey" placeholder="AIza..." />
+    <div class="hint"><a onclick="openLink('https://aistudio.google.com/apikey')">Get your key &rarr;</a></div>
+  </div>
+
+  <div class="field">
+    <label for="openaiApiKey">OpenAI API Key</label>
+    <input type="password" id="openaiApiKey" placeholder="sk-..." />
+    <div class="hint"><a onclick="openLink('https://platform.openai.com/api-keys')">Get your key &rarr;</a></div>
+  </div>
+
+  <div class="field">
+    <label for="dashscopeApiKey">DashScope API Key</label>
+    <input type="password" id="dashscopeApiKey" placeholder="sk-..." />
+    <div class="hint">阿里云通义万象 <a onclick="openLink('https://dashscope.console.aliyun.com/apikey')">Get your key &rarr;</a></div>
+  </div>
+
+  <div class="field">
+    <label for="replicateApiToken">Replicate API Token</label>
+    <input type="password" id="replicateApiToken" placeholder="r8_..." />
+    <div class="hint"><a onclick="openLink('https://replicate.com/account/api-tokens')">Get your token &rarr;</a></div>
+  </div>
+
+  <div class="section-title">Default Provider</div>
+
+  <div class="field">
+    <label for="defaultProvider">Auto-select provider</label>
+    <select id="defaultProvider">
+      <option value="">Auto-detect (from available keys)</option>
+      <option value="openrouter">OpenRouter</option>
+      <option value="google">Google / Gemini</option>
+      <option value="openai">OpenAI</option>
+      <option value="dashscope">DashScope</option>
+      <option value="replicate">Replicate</option>
+    </select>
+  </div>
+
+  <div class="actions">
+    <button onclick="save()">Save</button>
+    <span class="status" id="status"></span>
+  </div>
+
+  <script>
+    const { shell } = require('electron');
+    const fs = require('fs');
+    const path = require('path');
+
+    function openLink(url) {
+      shell.openExternal(url);
+    }
+
+    let currentDir;
+    try {
+      const fileUrl = new URL(window.location.href);
+      currentDir = path.dirname(decodeURIComponent(fileUrl.pathname));
+    } catch {
+      currentDir = __dirname;
+    }
+    const settingsPath = path.join(currentDir, 'settings.json');
+
+    const FIELDS = [
+      { id: 'openrouterApiKey',   key: 'openrouterApiKey' },
+      { id: 'googleApiKey',       key: 'googleApiKey' },
+      { id: 'openaiApiKey',       key: 'openaiApiKey' },
+      { id: 'dashscopeApiKey',    key: 'dashscopeApiKey' },
+      { id: 'replicateApiToken',  key: 'replicateApiToken' },
+      { id: 'defaultProvider',    key: 'defaultProvider' },
+    ];
+
+    function load() {
+      try {
+        const data = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        for (const f of FIELDS) {
+          if (data[f.key]) document.getElementById(f.id).value = data[f.key];
+        }
+      } catch {}
+    }
+
+    function save() {
+      let data = {};
+      try { data = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch {}
+      for (const f of FIELDS) {
+        const val = document.getElementById(f.id).value.trim();
+        if (val) {
+          data[f.key] = val;
+        } else {
+          delete data[f.key];
+        }
+      }
+      fs.writeFileSync(settingsPath, JSON.stringify(data, null, 2));
+      document.getElementById('status').textContent = 'Saved!';
+      setTimeout(() => { document.getElementById('status').textContent = ''; }, 2000);
+    }
+
+    load();
+  </script>
+</body>
+</html>

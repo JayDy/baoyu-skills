@@ -1,0 +1,42 @@
+name: baoyu-slide-deck
+type: browser
+version: 1.0.0
+description: Generates professional slide deck images from content. Creates outlines with style instructions, then generates individual slide images. Use when user asks to "create slides", "make a presentation", "generate deck", "slide deck", or "PPT".
+
+runtime:
+  node: ">=18"
+
+functions:
+  mergeToPptx:
+    description: Merge slide images into a PowerPoint (.pptx) file. Reads PNG/JPG images from the slide deck directory and combines them into a single PPTX with optional speaker notes from prompt files.
+    runtime: node
+    script: scripts/merge-to-pptx.ts
+    args:
+      - "{{slideDir}}"
+      - "{{output}}"
+    parameters:
+      slideDir:
+        type: string
+        description: Path to the slide deck directory containing numbered slide images (e.g., slide-deck/my-topic/)
+        required: true
+      output:
+        type: string
+        description: Output file path for the PPTX file (e.g., slide-deck/my-topic/my-topic.pptx). If omitted, defaults to <slideDir>/<dirName>.pptx
+        required: false
+
+  mergeToPdf:
+    description: Merge slide images into a PDF file. Reads PNG/JPG images from the slide deck directory and combines them into a single PDF document.
+    runtime: node
+    script: scripts/merge-to-pdf.ts
+    args:
+      - "{{slideDir}}"
+      - "{{output}}"
+    parameters:
+      slideDir:
+        type: string
+        description: Path to the slide deck directory containing numbered slide images (e.g., slide-deck/my-topic/)
+        required: true
+      output:
+        type: string
+        description: Output file path for the PDF file (e.g., slide-deck/my-topic/my-topic.pdf). If omitted, defaults to <slideDir>/<dirName>.pdf
+        required: false

@@ -1,0 +1,8 @@
+{
+  "name": "baoyu-compress-image",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "sharp": "^0.33.0"
+  }
+}

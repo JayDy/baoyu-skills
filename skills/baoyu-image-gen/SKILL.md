@@ -1,11 +1,13 @@
 ---
 name: baoyu-image-gen
-description: AI image generation with OpenAI, Google, DashScope and Replicate APIs. Supports text-to-image, reference images, aspect ratios. Sequential by default; parallel generation available on request. Use when user asks to generate, create, or draw images.
+type: local
+version: 1.0.0
+description: AI image generation (图片生成/画图/生成图片) with OpenAI, Google, DashScope, Replicate and OpenRouter APIs. Supports text-to-image, reference images, aspect ratios. Sequential by default; parallel generation available on request. Use when user asks to generate, create, or draw images.
 ---
 
 # Image Generation (AI SDK)
 
-Official API-based image generation. Supports OpenAI, Google, DashScope (阿里通义万象) and Replicate providers.
+Official API-based image generation. Supports OpenAI, Google, DashScope (阿里通义万象), Replicate and OpenRouter providers.
 
 ## Script Directory
 
@@ -13,28 +15,33 @@ Official API-based image generation. Supports OpenAI, Google, DashScope (阿里�
 1. `SKILL_DIR` = this SKILL.md file's directory
 2. Script path = `${SKILL_DIR}/scripts/main.ts`
 
-## Step 0: Load Preferences ⛔ BLOCKING
+## Preferences (EXTEND.md)
 
-**CRITICAL**: This step MUST complete BEFORE any image generation. Do NOT skip or defer.
-
-Check EXTEND.md existence (priority: project → user):
+Use Bash to check EXTEND.md existence (priority order):
 
 ```bash
+# Check project-level first
 test -f .baoyu-skills/baoyu-image-gen/EXTEND.md && echo "project"
+
+# Then user-level (cross-platform: $HOME works on macOS/Linux/WSL)
 test -f "$HOME/.baoyu-skills/baoyu-image-gen/EXTEND.md" && echo "user"
 ```
 
-| Result | Action |
-|--------|--------|
-| Found | Load, parse, apply settings. If `default_model.[provider]` is null → ask model only (Flow 2) |
-| Not found | ⛔ Run first-time setup ([references/config/first-time-setup.md](references/config/first-time-setup.md)) → Save EXTEND.md → Then continue |
+┌──────────────────────────────────────────────────┬───────────────────┐
+│                       Path                       │     Location      │
+├──────────────────────────────────────────────────┼───────────────────┤
+│ .baoyu-skills/baoyu-image-gen/EXTEND.md          │ Project directory │
+├──────────────────────────────────────────────────┼───────────────────┤
+│ $HOME/.baoyu-skills/baoyu-image-gen/EXTEND.md    │ User home         │
+└──────────────────────────────────────────────────┴───────────────────┘
 
-**CRITICAL**: If not found, complete the full setup (provider + model + quality + save location) using AskUserQuestion BEFORE generating any images. Generation is BLOCKED until EXTEND.md is created.
-
-| Path | Location |
-|------|----------|
-| `.baoyu-skills/baoyu-image-gen/EXTEND.md` | Project directory |
-| `$HOME/.baoyu-skills/baoyu-image-gen/EXTEND.md` | User home |
+┌───────────┬───────────────────────────────────────────────────────────────────────────┐
+│  Result   │                                  Action                                   │
+├───────────┼───────────────────────────────────────────────────────────────────────────┤
+│ Found     │ Read, parse, apply settings                                               │
+├───────────┼───────────────────────────────────────────────────────────────────────────┤
+│ Not found │ Use defaults                                                              │
+└───────────┴───────────────────────────────────────────────────────────────────────────┘
 
 **EXTEND.md Supports**: Default provider | Default quality | Default aspect ratio | Default image size | Default models
 
@@ -72,6 +79,12 @@ npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A cat" --image out.png --provi
 
 # Replicate with specific model
 npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A cat" --image out.png --provider replicate --model google/nano-banana
+
+# OpenRouter (via chat/completions with image generation models)
+npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A cat" --image out.png --provider openrouter
+
+# OpenRouter with specific model
+npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A cat" --image out.png --provider openrouter --model google/gemini-3.1-flash-image-preview
 ```
 
 ## Options
@@ -81,13 +94,13 @@ npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A cat" --image out.png --provi
 | `--prompt <text>`, `-p` | Prompt text |
 | `--promptfiles <files...>` | Read prompt from files (concatenated) |
 | `--image <path>` | Output image path (required) |
-| `--provider google\|openai\|dashscope\|replicate` | Force provider (default: google) |
-| `--model <id>`, `-m` | Model ID (Google: `gemini-3-pro-image-preview`, `gemini-3.1-flash-image-preview`; OpenAI: `gpt-image-1.5`) |
+| `--provider google\|openai\|dashscope\|replicate\|openrouter` | Force provider (default: auto-detect) |
+| `--model <id>`, `-m` | Model ID (`--ref` with OpenAI requires GPT Image model, e.g. `gpt-image-1.5`) |
 | `--ar <ratio>` | Aspect ratio (e.g., `16:9`, `1:1`, `4:3`) |
 | `--size <WxH>` | Size (e.g., `1024x1024`) |
 | `--quality normal\|2k` | Quality preset (default: 2k) |
 | `--imageSize 1K\|2K\|4K` | Image size for Google (default: from quality) |
-| `--ref <files...>` | Reference images. Supported by Google multimodal (`gemini-3-pro-image-preview`, `gemini-3-flash-preview`, `gemini-3.1-flash-image-preview`) and OpenAI edits (GPT Image models). If provider omitted: Google first, then OpenAI |
+| `--ref <files...>` | Reference images. Supported by Google multimodal and OpenAI edits (GPT Image models). If provider omitted: Google first, then OpenAI |
 | `--n <count>` | Number of images |
 | `--json` | JSON output |
 
@@ -107,25 +120,36 @@ npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A cat" --image out.png --provi
 | `GOOGLE_BASE_URL` | Custom Google endpoint |
 | `DASHSCOPE_BASE_URL` | Custom DashScope endpoint |
 | `REPLICATE_BASE_URL` | Custom Replicate endpoint |
+| `OPENROUTER_API_KEY` | OpenRouter API key (also configurable via skill settings UI) |
+| `OPENROUTER_IMAGE_MODEL` | OpenRouter model override (default: google/gemini-3.1-flash-image-preview) |
+| `OPENROUTER_BASE_URL` | Custom OpenRouter endpoint |
 
 **Load Priority**: CLI args > EXTEND.md > env vars > `<cwd>/.baoyu-skills/.env` > `~/.baoyu-skills/.env`
 
-## Model Resolution
+## OpenRouter Configuration
 
-Model priority (highest → lowest), applies to all providers:
+OpenRouter uses chat/completions endpoint with image generation models. API key lookup order:
 
-1. CLI flag: `--model <id>`
-2. EXTEND.md: `default_model.[provider]`
-3. Env var: `<PROVIDER>_IMAGE_MODEL` (e.g., `GOOGLE_IMAGE_MODEL`)
-4. Built-in default
+1. `settings.json` in skill directory (configured via Pocket settings UI, **optional**)
+2. Env var: `OPENROUTER_API_KEY`
 
-**EXTEND.md overrides env vars**. If both EXTEND.md `default_model.google: "gemini-3-pro-image-preview"` and env var `GOOGLE_IMAGE_MODEL=gemini-3.1-flash-image-preview` exist, EXTEND.md wins.
+**Agent does NOT need settings.json to exist** — if `OPENROUTER_API_KEY` env var is set, just run the script directly.
 
-**Agent MUST display model info** before each generation:
-- Show: `Using [provider] / [model]`
-- Show switch hint: `Switch model: --model <id> | EXTEND.md default_model.[provider] | env <PROVIDER>_IMAGE_MODEL`
+Default model: `google/gemini-3.1-flash-image-preview`
 
-### Replicate Models
+```bash
+# Just run it — the script handles API key lookup automatically
+npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A cat" --image out.png --provider openrouter
+```
+
+## Replicate Model Configuration
+
+When using `--provider replicate`, the model can be configured in the following ways (highest priority first):
+
+1. CLI flag: `--model <owner/name>`
+2. EXTEND.md: `default_model.replicate`
+3. Env var: `REPLICATE_IMAGE_MODEL`
+4. Built-in default: `google/nano-banana-pro`
 
 Supported model formats:
 
@@ -147,7 +171,7 @@ npx -y bun ${SKILL_DIR}/scripts/main.ts --prompt "A cat" --image out.png --provi
 1. `--ref` provided + no `--provider` → auto-select Google first, then OpenAI, then Replicate
 2. `--provider` specified → use it (if `--ref`, must be `google`, `openai`, or `replicate`)
 3. Only one API key available → use that provider
-4. Multiple available → default to Google
+4. Multiple available → default to first detected (Google > OpenAI > DashScope > Replicate > OpenRouter)
 
 ## Quality Presets
 
@@ -197,7 +221,7 @@ Supported: `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `2.35:1`
 - Missing API key → error with setup instructions
 - Generation failure → auto-retry once
 - Invalid aspect ratio → warning, proceed with default
-- Reference images with unsupported provider/model → error with fix hint (switch to Google multimodal: `gemini-3-pro-image-preview`, `gemini-3.1-flash-image-preview`; or OpenAI GPT Image edits)
+- Reference images with unsupported provider/model → error with fix hint (switch to Google multimodal or OpenAI GPT Image edits)
 
 ## Extension Support
 

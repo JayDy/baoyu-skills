@@ -2,7 +2,15 @@ import path from "node:path";
 import process from "node:process";
 import { homedir } from "node:os";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import type { CliArgs, Provider, ExtendConfig } from "./types";
+
+// Resolve skill root directory reliably across bun/node
+// This file is at <skill-root>/scripts/main.ts
+const __mainDir = typeof import.meta.dir === "string"
+  ? import.meta.dir
+  : path.dirname(fileURLToPath(import.meta.url));
+const SKILL_ROOT = path.resolve(__mainDir, '..');
 
 function printUsage(): void {
   console.log(`Usage:
@@ -14,7 +22,7 @@ Options:
   -p, --prompt <text>       Prompt text
   --promptfiles <files...>  Read prompt from files (concatenated)
   --image <path>            Output image path (required)
-  --provider google|openai|dashscope|replicate  Force provider (auto-detect by default)
+  --provider google|openai|dashscope|replicate|openrouter  Force provider (auto-detect by default)
   -m, --model <id>          Model ID
   --ar <ratio>              Aspect ratio (e.g., 16:9, 1:1, 4:3)
   --size <WxH>              Size (e.g., 1024x1024)
@@ -35,11 +43,13 @@ Environment variables:
   GOOGLE_IMAGE_MODEL        Default Google model (gemini-3-pro-image-preview)
   DASHSCOPE_IMAGE_MODEL     Default DashScope model (z-image-turbo)
   REPLICATE_IMAGE_MODEL     Default Replicate model (google/nano-banana-pro)
+  OPENROUTER_API_KEY        OpenRouter API key
+  OPENROUTER_IMAGE_MODEL    Default OpenRouter model (google/gemini-3.1-flash-image-preview)
   OPENAI_BASE_URL           Custom OpenAI endpoint
-  OPENAI_IMAGE_USE_CHAT     Use /chat/completions instead of /images/generations (true|false)
   GOOGLE_BASE_URL           Custom Google endpoint
   DASHSCOPE_BASE_URL        Custom DashScope endpoint
   REPLICATE_BASE_URL        Custom Replicate endpoint
+  OPENROUTER_BASE_URL       Custom OpenRouter endpoint
 
 Env file load order: CLI args > EXTEND.md > process.env > <cwd>/.baoyu-skills/.env > ~/.baoyu-skills/.env`);
 }
@@ -112,7 +122,7 @@ function parseArgs(argv: string[]): CliArgs {
 
     if (a === "--provider") {
       const v = argv[++i];
-      if (v !== "google" && v !== "openai" && v !== "dashscope" && v !== "replicate") throw new Error(`Invalid provider: ${v}`);
+      if (v !== "google" && v !== "openai" && v !== "dashscope" && v !== "replicate" && v !== "openrouter") throw new Error(`Invalid provider: ${v}`);
       out.provider = v;
       continue;
     }
@@ -219,6 +229,28 @@ async function loadEnv(): Promise<void> {
   }
 }
 
+async function loadSkillSettings(): Promise<void> {
+  try {
+    const content = await readFile(path.join(SKILL_ROOT, 'settings.json'), 'utf8');
+    const settings = JSON.parse(content);
+    // Inject API keys from settings.json into process.env (only if env is not already set)
+    const keyMap: Record<string, string> = {
+      openrouterApiKey:  'OPENROUTER_API_KEY',
+      googleApiKey:      'GOOGLE_API_KEY',
+      openaiApiKey:      'OPENAI_API_KEY',
+      dashscopeApiKey:   'DASHSCOPE_API_KEY',
+      replicateApiToken: 'REPLICATE_API_TOKEN',
+    };
+    for (const [jsonKey, envKey] of Object.entries(keyMap)) {
+      if (settings[jsonKey] && !process.env[envKey]) {
+        process.env[envKey] = settings[jsonKey];
+      }
+    }
+  } catch {
+    // No settings.json or invalid — skip silently
+  }
+}
+
 function extractYamlFrontMatter(content: string): string | null {
   const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*$/m);
   return match ? match[1] : null;
@@ -254,9 +286,9 @@ function parseSimpleYaml(yaml: string): Partial<ExtendConfig> {
       } else if (key === "default_image_size") {
         config.default_image_size = value === "null" ? null : (value as "1K" | "2K" | "4K");
       } else if (key === "default_model") {
-        config.default_model = { google: null, openai: null, dashscope: null, replicate: null };
+        config.default_model = { google: null, openai: null, dashscope: null, replicate: null, openrouter: null };
         currentKey = "default_model";
-      } else if (currentKey === "default_model" && (key === "google" || key === "openai" || key === "dashscope" || key === "replicate")) {
+      } else if (currentKey === "default_model" && (key === "google" || key === "openai" || key === "dashscope" || key === "replicate" || key === "openrouter")) {
         const cleaned = value.replace(/['"]/g, "");
         config.default_model![key] = cleaned === "null" ? null : cleaned;
       }
@@ -339,6 +371,7 @@ function detectProvider(args: CliArgs): Provider {
   const hasOpenai = !!process.env.OPENAI_API_KEY;
   const hasDashscope = !!process.env.DASHSCOPE_API_KEY;
   const hasReplicate = !!process.env.REPLICATE_API_TOKEN;
+  const hasOpenrouter = !!process.env.OPENROUTER_API_KEY;
 
   if (args.referenceImages.length > 0) {
     if (hasGoogle) return "google";
@@ -349,13 +382,13 @@ function detectProvider(args: CliArgs): Provider {
     );
   }
 
-  const available = [hasGoogle && "google", hasOpenai && "openai", hasDashscope && "dashscope", hasReplicate && "replicate"].filter(Boolean) as Provider[];
+  const available = [hasGoogle && "google", hasOpenai && "openai", hasDashscope && "dashscope", hasReplicate && "replicate", hasOpenrouter && "openrouter"].filter(Boolean) as Provider[];
 
   if (available.length === 1) return available[0]!;
   if (available.length > 1) return available[0]!;
 
   throw new Error(
-    "No API key found. Set GOOGLE_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DASHSCOPE_API_KEY, or REPLICATE_API_TOKEN.\n" +
+    "No API key found. Set GOOGLE_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, DASHSCOPE_API_KEY, REPLICATE_API_TOKEN, or OPENROUTER_API_KEY.\n" +
       "Create ~/.baoyu-skills/.env or <cwd>/.baoyu-skills/.env with your keys."
   );
 }
@@ -398,6 +431,9 @@ async function loadProviderModule(provider: Provider): Promise<ProviderModule> {
   if (provider === "replicate") {
     return (await import("./providers/replicate")) as ProviderModule;
   }
+  if (provider === "openrouter") {
+    return (await import("./providers/openrouter")) as ProviderModule;
+  }
   return (await import("./providers/openai")) as ProviderModule;
 }
 
@@ -410,6 +446,7 @@ async function main(): Promise<void> {
   }
 
   await loadEnv();
+  await loadSkillSettings();
   const extendConfig = await loadExtendConfig();
   const mergedArgs = mergeConfig(args, extendConfig);
 
@@ -446,6 +483,7 @@ async function main(): Promise<void> {
     if (provider === "openai") model = extendConfig.default_model.openai ?? null;
     if (provider === "dashscope") model = extendConfig.default_model.dashscope ?? null;
     if (provider === "replicate") model = extendConfig.default_model.replicate ?? null;
+    if (provider === "openrouter") model = extendConfig.default_model.openrouter ?? null;
   }
   model = model || providerModule.getDefaultModel();
 

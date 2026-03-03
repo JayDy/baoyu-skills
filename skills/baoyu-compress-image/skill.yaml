@@ -1,0 +1,58 @@
+name: baoyu-compress-image
+type: local
+version: 1.0.0
+description: Compresses images to WebP (default) or PNG with automatic tool selection. Use when user asks to "compress image", "optimize image", "convert to webp", or reduce image file size.
+
+runtime:
+  node: ">=18"
+
+systemDependencies:
+  - imagemagick
+
+functions:
+  compress:
+    description: Compress an image file or directory of images. Automatically selects the best available tool (sips → cwebp → ImageMagick → Sharp).
+    runtime: node
+    script: scripts/main.ts
+    args:
+      - "{{input}}"
+      - "--format={{format}}"
+      - "--quality={{quality}}"
+      - "{{#if output}}--output={{output}}{{/if}}"
+      - "{{#if keep}}--keep{{/if}}"
+      - "{{#if recursive}}--recursive{{/if}}"
+      - "{{#if json}}--json{{/if}}"
+    parameters:
+      input:
+        type: string
+        description: Input image file path or directory path
+        required: true
+      format:
+        type: string
+        description: Output format - webp, png, or jpeg
+        required: false
+        default: "webp"
+      quality:
+        type: number
+        description: Compression quality 0-100
+        required: false
+        default: 80
+      output:
+        type: string
+        description: Output file or directory path (default: same directory as input)
+        required: false
+      keep:
+        type: boolean
+        description: Keep original file after compression
+        required: false
+        default: false
+      recursive:
+        type: boolean
+        description: Process subdirectories recursively (when input is a directory)
+        required: false
+        default: false
+      json:
+        type: boolean
+        description: Output results as JSON
+        required: false
+        default: false

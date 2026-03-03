@@ -1,5 +1,7 @@
 ---
 name: baoyu-slide-deck
+type: browser
+version: 1.0.0
 description: Generates professional slide deck images from content. Creates outlines with style instructions, then generates individual slide images. Use when user asks to "create slides", "make a presentation", "generate deck", "slide deck", or "PPT".
 ---
 

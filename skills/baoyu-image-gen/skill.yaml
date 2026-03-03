@@ -1,0 +1,67 @@
+name: baoyu-image-gen
+type: local
+version: 1.0.0
+description: AI image generation with OpenAI, Google, DashScope, Replicate and OpenRouter APIs. Supports text-to-image, reference images, aspect ratios. Sequential by default; parallel generation available on request. Use when user asks to generate, create, or draw images.
+hasSettings: true
+
+runtime:
+  node: ">=18"
+
+functions:
+  generate:
+    description: "Generate an image using AI providers (OpenAI, Google, DashScope, Replicate, OpenRouter). Supports text-to-image, reference images, aspect ratios, and quality presets."
+    runtime: node
+    script: scripts/main.ts
+    args:
+      - "--prompt={{prompt}}"
+      - "--image={{image}}"
+    parameters:
+      prompt:
+        type: string
+        description: The text prompt describing the image to generate
+        required: true
+      image:
+        type: string
+        description: "Output image file path (e.g., output.png)"
+        required: true
+      provider:
+        type: string
+        description: "AI provider to use: google | openai | dashscope | replicate | openrouter (default: auto-detect from available API keys)"
+        required: false
+      model:
+        type: string
+        description: "Specific model ID to use (e.g., gemini-3-pro-image-preview, gpt-image-1.5)"
+        required: false
+      ar:
+        type: string
+        description: "Aspect ratio (e.g., 16:9, 1:1, 4:3, 9:16)"
+        required: false
+      size:
+        type: string
+        description: "Image size in WxH format (e.g., 1024x1024)"
+        required: false
+      quality:
+        type: string
+        description: "Quality preset: normal | 2k (default: 2k)"
+        required: false
+      imageSize:
+        type: string
+        description: "Google image size: 1K | 2K | 4K (default: from quality)"
+        required: false
+      ref:
+        type: string
+        description: Reference image file path(s) for image editing (Google multimodal or OpenAI edits)
+        required: false
+      n:
+        type: number
+        description: "Number of images to generate (default: 1)"
+        required: false
+      promptfiles:
+        type: string
+        description: Space-separated list of files to read prompts from (concatenated)
+        required: false
+      json:
+        type: boolean
+        description: Output results as JSON
+        required: false
+        default: false

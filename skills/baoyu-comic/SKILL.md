@@ -1,5 +1,7 @@
 ---
 name: baoyu-comic
+type: browser
+version: 1.0.0
 description: Knowledge comic creator supporting multiple art styles and tones. Creates original educational comics with detailed panel layouts and sequential image generation. Use when user asks to create "知识漫画", "教育漫画", "biography comic", "tutorial comic", or "Logicomix-style comic".
 ---
 

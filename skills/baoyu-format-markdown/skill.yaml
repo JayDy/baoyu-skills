@@ -1,0 +1,38 @@
+name: baoyu-format-markdown
+type: local
+version: 1.0.0
+description: Formats plain text or markdown files with frontmatter, titles, summaries, headings, bold, lists, and code blocks. Use when user asks to "format markdown", "beautify article", "add formatting", or improve article layout. Outputs to {filename}-formatted.md.
+
+runtime:
+  node: ">=18"
+
+functions:
+  formatMarkdown:
+    description: Run typography fixes on a markdown file. Fixes CJK emphasis, adds CJK/English spacing, and optionally replaces ASCII quotes. Modifies the file in-place.
+    runtime: node
+    script: scripts/main.ts
+    args:
+      - "{{filePath}}"
+      - "{{quotes}}"
+      - "{{spacing}}"
+      - "{{emphasis}}"
+    parameters:
+      filePath:
+        type: string
+        description: Absolute path to the markdown file to format (e.g., /path/to/article-formatted.md)
+        required: true
+      quotes:
+        type: string
+        description: Quote replacement option. Use "--quotes" to enable fullwidth quote replacement, "--no-quotes" to disable, or "" to use default (disabled).
+        required: false
+        default: ""
+      spacing:
+        type: string
+        description: CJK/English spacing option. Use "--no-spacing" to disable autocorrect spacing, or "" to use default (enabled).
+        required: false
+        default: ""
+      emphasis:
+        type: string
+        description: CJK emphasis fix option. Use "--no-emphasis" to disable emphasis punctuation fixes, or "" to use default (enabled).
+        required: false
+        default: ""

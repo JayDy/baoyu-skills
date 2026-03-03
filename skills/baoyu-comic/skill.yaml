@@ -1,0 +1,26 @@
+name: baoyu-comic
+type: browser
+version: 1.0.0
+description: Knowledge comic creator supporting multiple art styles and tones. Creates original educational comics with detailed panel layouts and sequential image generation.
+
+runtime:
+  node: ">=18"
+
+functions:
+  mergeToPdf:
+    description: Merge generated comic page images (PNG/JPG) from a directory into a single PDF file. Pages are sorted by their numeric prefix (e.g., 00-cover, 01-page, 02-page...).
+    runtime: node
+    script: scripts/merge-to-pdf.ts
+    args:
+      - "{{comicDir}}"
+      - "--output"
+      - "{{output}}"
+    parameters:
+      comicDir:
+        type: string
+        description: Path to the comic directory containing the generated page images (PNG/JPG files named like 00-cover-slug.png, 01-page-slug.png, etc.)
+        required: true
+      output:
+        type: string
+        description: Output PDF file path (e.g., comic/alan-turing-bio/alan-turing-bio.pdf). If omitted, saves as {dirName}.pdf inside the comic directory.
+        required: false

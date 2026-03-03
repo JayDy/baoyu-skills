@@ -22,53 +22,27 @@ function parseAspectRatio(ar: string): { width: number; height: number } | null 
   return { width: w, height: h };
 }
 
-const STANDARD_SIZES: [number, number][] = [
-  [1024, 1024],
-  [1280, 720],
-  [720, 1280],
-  [1024, 768],
-  [768, 1024],
-  [1536, 1024],
-  [1024, 1536],
-  [1536, 864],
-  [864, 1536],
-];
-
-const STANDARD_SIZES_2K: [number, number][] = [
-  [1536, 1536],
-  [2048, 1152],
-  [1152, 2048],
-  [1536, 1024],
-  [1024, 1536],
-  [1536, 864],
-  [864, 1536],
-  [2048, 2048],
-];
-
 function getSizeFromAspectRatio(ar: string | null, quality: CliArgs["quality"]): string {
-  const is2k = quality === "2k";
-  const defaultSize = is2k ? "1536*1536" : "1024*1024";
+  const baseSize = quality === "2k" ? 1440 : 1024;
 
-  if (!ar) return defaultSize;
+  if (!ar) return `${baseSize}*${baseSize}`;
 
   const parsed = parseAspectRatio(ar);
-  if (!parsed) return defaultSize;
+  if (!parsed) return `${baseSize}*${baseSize}`;
 
-  const targetRatio = parsed.width / parsed.height;
-  const sizes = is2k ? STANDARD_SIZES_2K : STANDARD_SIZES;
+  const ratio = parsed.width / parsed.height;
 
-  let best = defaultSize;
-  let bestDiff = Infinity;
-
-  for (const [w, h] of sizes) {
-    const diff = Math.abs(w / h - targetRatio);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = `${w}*${h}`;
-    }
+  if (Math.abs(ratio - 1) < 0.1) {
+    return `${baseSize}*${baseSize}`;
   }
 
-  return best;
+  if (ratio > 1) {
+    const w = Math.round(baseSize * ratio);
+    return `${w}*${baseSize}`;
+  }
+
+  const h = Math.round(baseSize / ratio);
+  return `${baseSize}*${h}`;
 }
 
 function normalizeSize(size: string): string {
